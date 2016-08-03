@@ -1,3 +1,5 @@
 Database connector for brick-related programs
 
 It uses H2 database engine (pure java) http://h2database.com
+
+Requires JDK 6
