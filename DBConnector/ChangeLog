@@ -1,0 +1,5 @@
+2017-03-10  Mario Pascucci  <mpascucci@gmail.com>
+
+	* src/bricksnspace/dbconnector/DBConnector.java (checkTable): test if table exists
+	(createFTS): table and index name now are case-insensitive
+	(deleteFTS): table name is now case-insensitive. On error, logs a warning message

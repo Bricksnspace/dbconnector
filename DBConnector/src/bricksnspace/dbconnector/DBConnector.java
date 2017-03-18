@@ -28,6 +28,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 
@@ -154,6 +156,30 @@ public class DBConnector {
 		return conn.prepareStatement(sql);
 	}
 
+	
+	/**
+	 * Checks if a table exists. 
+	 * 
+	 * @param tableName table to check
+	 * @return true if tableName exists
+	 */
+	public boolean checkTable(String tableName) {
+		
+		Statement st;
+		ResultSet rs;
+		
+		try {
+			st = conn.createStatement();
+			rs = st.executeQuery("SELECT count(*) as res FROM INFORMATION_SCHEMA.TABLES WHERE " +
+					"TABLE_SCHEMA='PUBLIC' " +
+					" AND TABLE_NAME='"+tableName+"'" );
+			rs.next();
+			return rs.getInt(1) == 1;
+		} catch (SQLException e) {
+			return false;
+		}
+
+	}
 
 
 	/**
@@ -183,8 +209,8 @@ public class DBConnector {
 	/**
 	 * Creates Full text search index
 	 * Deletes any existing index for same table
-	 * @param table table name (uppercase)
-	 * @param fields list of field names to index (uppercase, comma delimited)
+	 * @param table table name
+	 * @param fields list of field names to index (comma delimited)
 	 * @throws SQLException if unable to create index
 	 */
 	public void createFTS(String table, String fields) throws SQLException {
@@ -193,14 +219,15 @@ public class DBConnector {
 		
 		deleteFTS(table);
 		st = conn.createStatement();
-		st.execute("CALL FTL_CREATE_INDEX('PUBLIC','"+table+"','"+fields+"')");
+		st.execute("CALL FTL_CREATE_INDEX('PUBLIC','"+table.toUpperCase()+"','"+fields.toUpperCase()+"')");
 		
 	}
 
 
 	/**
 	 * Deletes any full text index for table
-	 * @param table index table name to delete (uppercase)
+	 * @param table index table name to delete
+	 * @throws SQLException 
 	 */
 	public void deleteFTS(String table) {
 		
@@ -209,17 +236,19 @@ public class DBConnector {
 		try {
 			st = conn.createStatement();
 			// drop old index, if exists
-			st.execute("CALL FTL_DROP_INDEX('PUBLIC','"+table+"') ");
+			st.execute("CALL FTL_DROP_INDEX('PUBLIC','"+table.toUpperCase()+"')");
 		}
 		catch (SQLException e) {
-			;
+			Logger.getGlobal().log(Level.WARNING, "[deleteFTS] Error in delete fulltext search index, table: "+table, e);
 		}
-
 	}
 	
 
 	/**
-	 * disable autocommit, if supported by DB
+	 * Disable autocommit, if supported by DB <br/>
+	 * NB: transactions are isolated at thread level: so if you disable autocommit on a thread, 
+	 * all other thread can't lock tables for modify, and you get a "timeout lock error"
+	 *  
 	 * @throws SQLException 
 	 */
 	public void autocommitDisable() throws SQLException {
