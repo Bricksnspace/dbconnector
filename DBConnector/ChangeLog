@@ -1,3 +1,7 @@
+2017-04-11  Mario Pascucci  <mpascucci@gmail.com>
+
+	* src/bricksnspace/dbconnector/DBConnector.java (checkTable): table name must be uppercase. Fixed.
+
 2017-03-10  Mario Pascucci  <mpascucci@gmail.com>
 
 	* src/bricksnspace/dbconnector/DBConnector.java (checkTable): test if table exists

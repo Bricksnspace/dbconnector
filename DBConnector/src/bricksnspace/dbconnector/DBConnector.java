@@ -172,7 +172,7 @@ public class DBConnector {
 			st = conn.createStatement();
 			rs = st.executeQuery("SELECT count(*) as res FROM INFORMATION_SCHEMA.TABLES WHERE " +
 					"TABLE_SCHEMA='PUBLIC' " +
-					" AND TABLE_NAME='"+tableName+"'" );
+					" AND TABLE_NAME='"+tableName.toUpperCase()+"'" );
 			rs.next();
 			return rs.getInt(1) == 1;
 		} catch (SQLException e) {
