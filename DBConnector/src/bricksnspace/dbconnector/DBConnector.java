@@ -44,6 +44,8 @@ public class DBConnector {
 	Connection conn;
 	boolean inited = false;
 	boolean needUpgrade = false;
+	private final String DUMMYTABLE = "dbcdummy";
+	private final String DUMMYFIELD = "sometext";
 
 	
 	/**
@@ -97,9 +99,26 @@ public class DBConnector {
 		
 		st = conn.createStatement();
 		
+		// enables full text search with Apache Lucene 
 		st.execute("CREATE ALIAS IF NOT EXISTS FTL_INIT FOR \"org.h2.fulltext.FullTextLucene.init\";" +
 				"CALL FTL_INIT()");
 
+		try {
+			// remove any previous table
+			st.execute("DROP TABLE IF EXISTS "+DUMMYTABLE);
+			// create a dummy table
+			st.execute("CREATE TABLE IF NOT EXISTS "+DUMMYTABLE+" (id INT PRIMARY KEY AUTO_INCREMENT, "+DUMMYFIELD+" VARCHAR(32))");
+			// create a dummy FTS index
+			createFTS(DUMMYTABLE, DUMMYFIELD);
+			// this causes a complete FTS index rebuild on all tables that have FTS index, as stated in H2 online manual:
+			// http://h2database.com/html/tutorial.html#fulltext par. "Using the Apache Lucene Fulltext Search"
+			deleteFTS(DUMMYTABLE);
+			st.execute("DROP TABLE IF EXISTS "+DUMMYTABLE);
+		}
+		catch (SQLException e) {
+			Logger.getGlobal().log(Level.SEVERE, "[initDB] Unable to refresh full text index.", e);
+		}
+		
 		inited = true;
 
 		return inited;
@@ -195,6 +214,30 @@ public class DBConnector {
 	}
 
 
+	
+	/**
+	 * Checks if a table have a full text search index  
+	 * @param tableName table to check
+	 * @param fields list of fields to index (comma delimited, no whitespaces) 
+	 * @return true if table is indexed via FTS
+	 */
+	public boolean checkFTS(String tableName, String fields) {
+		
+		Statement st;
+		ResultSet rs;
+		
+		try {
+			st = conn.createStatement();
+			rs = st.executeQuery("SELECT COLUMNS FROM FTL.INDEXES WHERE " +
+					"SCHEMA='PUBLIC' " +
+					" AND TABLE='"+tableName.toUpperCase()+"'" );
+			rs.next();
+			return rs.getString(1).equalsIgnoreCase(fields);
+		} catch (SQLException e) {
+			return false;
+		}		
+	}
+	
 
 	/**
 	 * @return
@@ -227,7 +270,6 @@ public class DBConnector {
 	/**
 	 * Deletes any full text index for table
 	 * @param table index table name to delete
-	 * @throws SQLException 
 	 */
 	public void deleteFTS(String table) {
 		
